@@ -2,20 +2,29 @@
 
 import { Input } from "@/components/ui/input";
 import Link from "next/link";
-import { useForm } from "@tanstack/react-form";
+import { useForm } from "@tanstack/react-form-nextjs";
 import { StepOneDefaultValues } from "@/lib/default-values";
 import {
+  Field,
   FieldDescription,
   FieldError,
   FieldGroup,
 } from "@/components/ui/field";
 import { Button } from "@/components/ui/button";
+import { z } from "zod";
+import { StepOneSchema } from "@/schema/step-one";
+
+type StepOneSchema = z.infer<typeof StepOneSchema>;
 
 export default function StepOne() {
   const form = useForm({
     defaultValues: StepOneDefaultValues,
     onSubmit: async (value) => {
       console.log(value);
+    },
+    validators: {
+      onChange: StepOneSchema,
+      onBlur: StepOneSchema,
     },
   });
 
@@ -47,12 +56,11 @@ export default function StepOne() {
                   const isInvalid =
                     field.state.meta.isTouched && !field.state.meta.isValid;
                   return (
-                    <>
+                    <Field data-invalid={isInvalid}>
                       <FieldDescription className="mb-2 block text-sm font-medium text-foreground">
                         Full Name
                       </FieldDescription>
                       <Input
-                        type="text"
                         id={field.name}
                         name={field.name}
                         value={field.state.value}
@@ -65,7 +73,7 @@ export default function StepOne() {
                       {isInvalid && (
                         <FieldError errors={field.state.meta.errors} />
                       )}
-                    </>
+                    </Field>
                   );
                 }}
               </form.Field>
