@@ -3,26 +3,66 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import z from "zod";
 import { SignUpSchema } from "@/schema/auth";
 import { useForm } from "@tanstack/react-form-nextjs";
 import { SignUpDefaultValues } from "@/lib/default-values";
 import { Field, FieldError, FieldLabel } from "@/components/ui/field";
+import authClient from "@/lib/auth-client";
+import { useMutation } from "@tanstack/react-query";
+import { toast } from "sonner";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
 
 type SignUpSchema = z.infer<typeof SignUpSchema>;
 
+const signUpUser = async (data: SignUpSchema) => {
+  const { error } = await authClient.signUp.email({
+    name: data.name,
+    email: data.email,
+    password: data.password,
+  });
+
+  if (error) {
+    throw error;
+  }
+};
+
 export default function SignUpPage() {
+  const [apiError, setApiError] = useState<string | null>(null);
+  const router = useRouter();
   const form = useForm({
     defaultValues: SignUpDefaultValues,
-    onSubmit: async (value) => {
+    onSubmit: async ({ value }) => {
       console.log(value);
+      signUpMutation.mutate(value);
     },
     validators: {
       onChange: SignUpSchema,
       onBlur: SignUpSchema,
     },
   });
+
+  const signUpMutation = useMutation({
+    mutationFn: signUpUser,
+    onSuccess: () => {
+      toast.success("Account created successfully!");
+      form.reset();
+      router.push("/user/onboarding");
+      setApiError(null);
+    },
+    onError: (error: Error & { status?: number }) => {
+      console.log("Signup error:", error);
+
+      const message =
+        error.status === 503
+          ? "Service is temporarily unavailable. Please try again shortly."
+          : "An unexpected error occurred. Please try again.";
+
+      setApiError(message);
+    },
+  });
+
   return (
     <form
       onSubmit={(e) => {
@@ -69,21 +109,66 @@ export default function SignUpPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input id="email" name="email" placeholder="you@example.com" />
+              <form.Field name="email">
+                {(field) => {
+                  const isInvalid =
+                    field.state.meta.isTouched && !field.state.meta.isValid;
+                  return (
+                    <Field data-invalid={isInvalid}>
+                      <FieldLabel htmlFor={field.name}>Email</FieldLabel>
+                      <Input
+                        id={field.name}
+                        name={field.name}
+                        value={field.state.value}
+                        onBlur={field.handleBlur}
+                        onChange={(e) => field.handleChange(e.target.value)}
+                        aria-invalid={isInvalid}
+                        placeholder="you@example.com"
+                      />
+                      {isInvalid && (
+                        <FieldError errors={field.state.meta.errors} />
+                      )}
+                    </Field>
+                  );
+                }}
+              </form.Field>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
-                name="password"
-                placeholder="Enter your password"
-              />
+              <form.Field name="password">
+                {(field) => {
+                  const isInvalid =
+                    field.state.meta.isTouched && !field.state.meta.isValid;
+                  return (
+                    <Field data-invalid={isInvalid}>
+                      <FieldLabel htmlFor={field.name}>Password</FieldLabel>
+                      <Input
+                        id={field.name}
+                        name={field.name}
+                        type="password"
+                        value={field.state.value}
+                        onBlur={field.handleBlur}
+                        onChange={(e) => field.handleChange(e.target.value)}
+                        aria-invalid={isInvalid}
+                        placeholder="Enter your password"
+                      />
+                      {isInvalid && (
+                        <FieldError errors={field.state.meta.errors} />
+                      )}
+                    </Field>
+                  );
+                }}
+              </form.Field>
             </div>
 
-            <Button type="submit" className="w-full">
-              Sign Up
+            {apiError && <p className="text-sm text-red-500">{apiError}</p>}
+
+            <Button
+              type="submit"
+              className="w-full bg-[#1e375b] hover:bg-[#163057]"
+              disabled={signUpMutation.isPending}
+            >
+              {signUpMutation.isPending ? "Creating account..." : "Sign Up"}
             </Button>
           </div>
 

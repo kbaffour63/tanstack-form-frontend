@@ -16,7 +16,7 @@ export default function Home() {
             professional information.
           </p>
 
-          <Link href="/step-1">
+          <Link href="/step-one">
             <button className="px-8 py-3 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors font-semibold text-lg">
               Start the Form
             </button>
